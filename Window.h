@@ -26,52 +26,47 @@ public:
 	GLfloat getAnguloPuertaLalo() { return anguloPuertaLalo; }
 	GLfloat getPosGolf() { return posGolf; }
 	GLfloat getRotGolf() { return rotGolf; }
-	GLboolean getprenderluz() { return prenderluz; }	//FAROS DE LUZ DEL CARRO.
-	GLboolean getprender_luz2() { return prender_luz2; }	//FAROS DE LUZ DEL CARRO.
+	GLboolean getprenderluz() { return prenderluz; }	
+	GLboolean getprender_luz2() { return prender_luz2; }	
+	GLboolean getSonido() { return Sonido; } //BANDERA PARA EL SONIDO
+	GLboolean getPasos() { return Pasos; } //BANDERA PARA LOS PASOS
 
 
-
-	GLfloat getPosPsyduckZ()
+	GLfloat getPosZ()
 	{
-		return posPsyduckZ;
+		return posZ;
 	}
 
-	GLfloat getPosPsyduckX()
+	GLfloat getPosX()
 	{
-		return posPsyduckX;
+		return posX;
 	}
-
-
 
 	GLfloat getPosCamaraZ()
 	{
-		if (angPsyduck == 0.0f)
-			return posPsyduckZ - 12.0f;
-		else if (angPsyduck == 90.0f)
-			return posPsyduckZ;
-		else if (angPsyduck == 180.0f)
-			return(posPsyduckZ + 12.0f);
+		if (ang == 0.0f)
+			return posZ - 30.0f;
+		else if (ang == 90.0f)
+			return posZ;
+		else if (ang == 180.0f)
+			return posZ + 30.0f;
 		else
-			return(posPsyduckZ);
+			return posZ;
 	}
-
 
 	GLfloat getPosCamaraX()
 	{
-		if (angPsyduck == 0.0f)
-			return posPsyduckX;
-		else if (angPsyduck == 90.0f)
-			return posPsyduckX - 12.0f;
-		else if (angPsyduck == 180.0f)
-			return(posPsyduckX);
+		if (ang == 0.0f)
+			return posX;
+		else if (ang == 90.0f)
+			return posX - 30.0f;
+		else if (ang == 180.0f)
+			return posX;
 		else
-			return(posPsyduckX + 12.0f);
+			return posX + 30.0f;
 	}
 
-
-	GLfloat getAngPsyduck() { return angPsyduck; }
-
-
+	GLfloat getAng() { return ang; }
 	GLfloat getAngPieDer() { return angPieDer; }
 	GLfloat getAngPieIzq() { return angPieIzq; }
 	GLint getControlCamera() { return controlCamera; }
@@ -99,21 +94,24 @@ private:
 	GLfloat posGolf = 0.0f;
 	GLfloat rotGolf = 0.0f;
 
-	GLfloat posPsyduckZ = -290.0f;
-	GLfloat posPsyduckX = 0.0f;
+	GLfloat posZ = -290.0f;
+	GLfloat posX = 0.0f;
 
 	GLfloat angPieDer = 0.0f;
 	GLfloat angPieIzq = 0.0f;
 	GLfloat seleccionPiePsyduck = 1.0f;
-	GLfloat angPsyduck = 0.0f;
+	GLfloat ang = 0.0f;
 	GLint arregloluz = 0;
 	GLint prender_luz = 1;
 	GLint prender_luz2;
 	GLboolean prenderluz;
+	GLboolean Sonido = false;
+	GLboolean Pasos = false;
 
 	GLint controlCarrera = 1;
 
 	GLint controlCamera = 1;
+
 
 	bool mouseFirstMoved;
 	static void ManejaTeclado(GLFWwindow* window, int key, int code, int action, int mode);

@@ -9,24 +9,42 @@ Proyecto aviario
 #include <cmath>
 #include <vector>
 #include <math.h>
+#include <iostream>
 
 #include <glew.h>
 #include <glfw3.h>
+#include <random>
 
 #include <glm.hpp>
 #include <gtc\matrix_transform.hpp>
 #include <gtc\type_ptr.hpp>
+
+#include <irrKlang.h>
+#include <thread>
+
+#include <chrono>			
+
+using namespace irrklang;
+
+#pragma comment(lib, "irrKlang.lib") // link with irrKlang.dll
+
 //para probar el importer
 //#include<assimp/Importer.hpp>
 
-#include "Window.h"
 #include "Mesh.h"
 #include "Shader_light.h"
+#include "Toroide.h" //Toroide 
+#include "Toroide2.h" //Toroide 2
+
+
+#include "Window.h"
 #include "Camera.h"
+
 #include "Texture.h"
-#include "Sphere.h"
+
 #include"Model.h"
 #include "Skybox.h"
+
 
 //para iluminaci�n
 #include "CommonValues.h"
@@ -34,11 +52,17 @@ Proyecto aviario
 #include "PointLight.h"
 #include "SpotLight.h"
 #include "Material.h"
+
+
+
 const float toRadians = 3.14159265f / 180.0f;
+const float PI = 3.1416f;
 
 Window mainWindow;
 std::vector<Mesh*> meshList;
 std::vector<Shader> shaderList;
+
+
 
 Camera camera, cameraAvatar, cameraAerea;
 
@@ -185,19 +209,28 @@ float rotllantaOffset;
 bool avanza;
 
 //--------------------------------------------------------------------------------------*//
+///Bresenham 
+int screenWidth;
+int screenHeight;
+float centerX;
+float centerY;
+float radius;
 
-Skybox skybox;
-float dia;
+//Sol
 float movSol;
 float movSolOffset;
-float R = 1;
-float G = 1;
-float B = 1;
+int contSol;
+float green;
+float red;
+
+Skybox skybox;
+
 
 /*DECLARACION DE MATERIALES*/
 //--------------------------------------------------------------------------------------*//
 Material Material_brillante;
 Material Material_opaco;
+Material Material_kuromi;
 
 
 //Sphere cabeza = Sphere(0.5, 20, 20);
@@ -222,6 +255,13 @@ static const char* vShader = "shaders/shader_light.vert";
 
 // Fragment Shader
 static const char* fShader = "shaders/shader_light.frag";
+
+//Toroide Cristpher
+Toroide ta = Toroide(3.0, 1000, 1000); //recibe radio, slices, stacks
+
+//Toroide  Karla 
+Toroide2 tb = Toroide2(1.0, 3.0, 1000, 1000); //recibe radio menor, radio mayor, slices, stacks.
+
 
 
 //funci�n de calculo de normales por promedio de v�rtices
@@ -332,17 +372,129 @@ void CreateShaders()
 	shaderList.push_back(*shader1);
 }
 
+void playMusic()
+{
+	// start the sound engine with default parameters
+	ISoundEngine* engine = createIrrKlangDevice();
+
+	if (!engine)
+		printf("error starting up the engine \n"); 
+
+	engine->play2D("audio/Audio_C.ogg", true);
+
+}
+
+void playMusic3D() {
+	// start the sound engine with default parameters
+	ISoundEngine* engine = createIrrKlangDevice();
+
+	if (!engine)
+		printf("error starting up the engine \n");
+
+
+	ISound* music = engine->play3D("audio/ophelia.ogg",
+		vec3df(0, 0, 0), true, false, true);
+
+
+	if (music)
+		music->setMinDistance(5.0f);	
+}
+
+void playSonido() {
+	// start the sound engine with default parameters
+	ISoundEngine* engine = createIrrKlangDevice();
+
+	if (!engine)
+		printf("Could not startup engine\n");
+
+	engine->play2D("audio/magic.wav");
+
+}
+
+void playPasos() {
+	// start the sound engine with default parameters
+	ISoundEngine* engine = createIrrKlangDevice();
+
+	if (!engine)
+		printf("Could not startup engine\n");
+
+	engine->play2D("audio/bell.wav",false);
+
+	while (engine->isCurrentlyPlaying("audio/pasos.wav")) {
+		// Sleep for a short time to allow the sound to play
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	}
+	
+
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void drawCircleBresenham(int radio, int centroX, int centroY) {
+	int x = 0;
+	int y = radio;
+	int d = 3 - 2 * radio;
+
+	// Algoritmo de Bresenham para dibujar la circunferencia
+	while (x <= y) {
+		glBegin(GL_POINTS);
+		// Dibujar los puntos simétricos alrededor del centro
+		glVertex2i(centroX + x, centroY + y);
+		glVertex2i(centroX - x, centroY + y);
+		glVertex2i(centroX + x, centroY - y);
+		glVertex2i(centroX - x, centroY - y);
+		glVertex2i(centroX + y, centroY + x);
+		glVertex2i(centroX - y, centroY + x);
+		glVertex2i(centroX + y, centroY - x);
+		glVertex2i(centroX - y, centroY - x);
+		glEnd();
+
+		// Actualizar el valor del parámetro de decisión y las coordenadas x e y
+		if (d < 0) {
+			d += 4 * x + 6;
+		}
+		else {
+			d += 4 * (x - y) + 10;
+			y--;
+		}
+		x++;
+	}
+}
+///////////////////////////////////////////////////////////////////////////////
+
+const float pi = 3.14159265358979323846;
+const int numSegments = 100;
+const float innerRadius = 1.0;
+const float outerRadius = 3.0;
+
 int main()
 {
 	mainWindow = Window(1366, 768); // 1280, 1024 or 1024, 768
 	mainWindow.Initialise();
 
+
+	playMusic();
 	CreateObjects();
 	CreateShaders();
 
+	cameraAerea = Camera(glm::vec3(0.0f, 100.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), 0.0f, -90.0f, 0.6f, 0.5f);
+
+	//Inicializa los toroides
+	ta.init();
+	tb.init();
+
+	//Envía los toroides al shader
+	ta.load();
+	tb.load();
+	//Variables de luz temporizada
+	int contador = 0;															////////////////////////////////////////////////////////////////
+	auto inicio = std::chrono::steady_clock::now();
+	auto tiempo_transcurrido = std::chrono::steady_clock::now() - inicio;		////////////////////////////////////////////////////////////////
+
+
+
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	cameraAerea = Camera(glm::vec3(0.0f, 100.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), 0.0f, -90.0f, 0.6f, 0.5f);
 
 	//--------------------------------------------------------------------------------------*//
 
@@ -482,16 +634,11 @@ int main()
 
 
 	//--------------------------------------------------------------------------------------*//
-
 	/*MODELOS EDUARDO*/
 	dodrio = Model();
 	dodrio.LoadModel("Models/Eduardo/dodrio.obj");
 	rowlet = Model();
 	rowlet.LoadModel("Models/Eduardo/rowlet.obj");
-	banderaPokemon = Model();
-	banderaPokemon.LoadModel("Models/Eduardo/Flag.obj");
-	lamparaLalo = Model();
-	lamparaLalo.LoadModel("Models/Eduardo/lamp.obj");
 	paredPuertaLalo = Model();
 	paredPuertaLalo.LoadModel("Models/Eduardo/PAREDES.obj");
 	puertaLalo = Model();
@@ -525,7 +672,7 @@ int main()
 
 	//--------------------------------------------------------------------------------------*//
 
-	/*MODELOS CRISTOPHER*/	
+	/*MODELOS CRISTOPHER*/
 	banca = Model();
 	banca.LoadModel("Models/Christopher/banca.obj");
 	Bandera_C = Model();
@@ -575,6 +722,7 @@ int main()
 
 	Material_brillante = Material(4.0f, 256);
 	Material_opaco = Material(0.3f, 4);
+	Material_kuromi = Material(0.0f,0);
 	//--------------------------------------------------------------------------------------*//
 
 
@@ -583,11 +731,11 @@ int main()
 									/*LUCES*/
 	//--------------------------------------------------------------------------------------*//
 		//luz direccional, s�lo 1 y siempre debe de existir
-	mainLight = DirectionalLight(1.0f, 1.0f, 1.0f,
+	/*mainLight = DirectionalLight(1.0f, 1.0f, 1.0f,
 		0.3f, 0.3f,
 		0.0f, 0.0f, -1.0f);		// a donde apunta
 
-	/* //luz direccional, s lo 1 y siempre debe de existir
+	 //luz direccional, s lo 1 y siempre debe de existir
 	mainLight = DirectionalLight(R, G, B,
 		(G / 2) + 0.1f, (G / 2) + 0.1f,
 		movSol, -300.0f, 0.0f);		// a donde apunta */
@@ -662,6 +810,7 @@ int main()
 
 	movHeliyoffset = 12.0f;
 	movAvionoffset = 1.0f;
+
 	movCoche = 0.0f;
 	movOffset = 0.1f;
 	rotllanta = 0.0f;
@@ -669,38 +818,162 @@ int main()
 	avanza = true;
 
 	/////LUZ SOL
-	dia = 1;
 	movSol = 1000.0f;
 	movSolOffset = 0.1f;
-	R = 0.0f;
-	G = 0.0f;
-	B = 1.0f;
+	contSol = 1;
+	green = 0.0f;
+	red = 0.0f;
 
 	valorCiclo = 0.0f;
 	cicloOffset = 1.0f;
 
 	float posGolf = 0.0f, posChoco = 0.0f;
+
+	glm::mat4 model(1.0);
+	glm::mat4 modelaux(1.0);
+	glm::vec3 color = glm::vec3(0.0f, 0.0f, 0.0f);
+
 	while (!mainWindow.getShouldClose())
 	{
-		cameraAvatar = Camera(glm::vec3(mainWindow.getPosCamaraX(), 18.0f, mainWindow.getPosCamaraZ() - 6.0f), glm::vec3(0.0f, 1.0f, 0.0f), -mainWindow.getAngPsyduck() + 90.0f, 0.0f, 0.3f, 0.5f);		GLfloat now = glfwGetTime();
+
+		GLfloat now = glfwGetTime();
 		deltaTime = now - lastTime;
+		//deltaTime para estandarizar el tiempo trascurrido entre ciclos de reloj y las variables
 		deltaTime += (now - lastTime) / limitFPS;
 		lastTime = now;
 
-		//Movimiento animación compleja coche
+		/*
+		//CICLO AUTOMATICO.
+		if (ciclo == true)
+		{
+			if (valorCiclo < 100.0f)
+			{
+				valorCiclo += deltaTime * cicloOffset;
+				shaderList[0].SetSpotLights(spotLights, spotLightCount);
+			}
+			else
+				ciclo = false;
+		}
+		else
+		{
+			if (valorCiclo > -100.0f)
+			{
+				valorCiclo -= deltaTime * cicloOffset;
+				shaderList[0].SetSpotLights(spotLights, spotLightCount - 1);
+			}
+			else
+				ciclo = true;
+		}
+
+		*/
+
+		//SKYBOX
+		//movimiento del sol
+		if (deltaTime <= 5.0) {
+			contSol = 0;
+		}
+
+		if (contSol == 0) {
+			if (movSol <= 1000.0f && movSol >= -1000.0f) {
+				movSol -= movSolOffset * deltaTime;
+			}
+			else {
+				movSol = 1000.0f;
+			}
+		}
+
+		if (movSol >= 1000.0f && contSol == 0) {
+			green = 0.0f;
+			red = 0.0f;
+		}
+
+		if (movSol <= -500 && movSol >= -1000 && contSol == 0) {
+			green -= (deltaTime * 0.0002);
+			red -= (deltaTime * 0.0002);
+
+		}
+
+		if (movSol >= 500 && movSol <= 1000 && contSol == 0) {
+			green += (deltaTime * 0.0002);
+			red += (deltaTime * 0.0002);
+		}
+
+		if (green > 1.5f && contSol == 0) {
+			green = 0.0f;
+			red = 0.0f;
+		}
+
+		if ((movSol > 995 && movSol <= 1000 || movSol < -995 && movSol >= -1000) && contSol == 0) {
+			std::vector<std::string> skyboxFaces;
+			skyboxFaces.push_back("Textures/Skybox/escenario_noche_rt.tga");
+			skyboxFaces.push_back("Textures/Skybox/escenario_noche_lf.tga");
+			skyboxFaces.push_back("Textures/Skybox/escenario_noche_dn.tga");
+			skyboxFaces.push_back("Textures/Skybox/escenario_noche_up.tga");
+			skyboxFaces.push_back("Textures/Skybox/escenario_noche_bk.tga");
+			skyboxFaces.push_back("Textures/Skybox/escenario_noche_ft.tga");
+
+
+
+			skybox = Skybox(skyboxFaces);
+		}
+
+		if ((movSol > 845 && movSol <= 850 || movSol < -845 && movSol >= -850) && contSol == 0) {
+			std::vector<std::string> skyboxFaces;
+			skyboxFaces.push_back("Textures/Skybox/escenario_tarde_rt.tga");
+			skyboxFaces.push_back("Textures/Skybox/escenario_tarde_lf.tga");
+			skyboxFaces.push_back("Textures/Skybox/escenario_tarde_dn.tga");
+			skyboxFaces.push_back("Textures/Skybox/escenario_tarde_up.tga");
+			skyboxFaces.push_back("Textures/Skybox/escenario_tarde_bk.tga");
+			skyboxFaces.push_back("Textures/Skybox/escenario_tarde_ft.tga");
+
+			skybox = Skybox(skyboxFaces);
+		}
+
+		if ((movSol > 745 && movSol <= 750 || movSol < -745 && movSol >= -750) && contSol == 0) {
+			std::vector<std::string> skyboxFaces;
+
+			skyboxFaces.push_back("Textures/Skybox/escenario_mediodia_rt.tga");
+			skyboxFaces.push_back("Textures/Skybox/escenario_mediodia_lf.tga");
+			skyboxFaces.push_back("Textures/Skybox/escenario_mediodia_dn.tga");
+			skyboxFaces.push_back("Textures/Skybox/escenario_mediodia_up.tga");
+			skyboxFaces.push_back("Textures/Skybox/escenario_mediodia_bk.tga");
+			skyboxFaces.push_back("Textures/Skybox/escenario_mediodia_ft.tga");
+
+			skybox = Skybox(skyboxFaces);
+		}
+
+		if ((movSol <= 650 && movSol >= 645 || movSol <= -645 && movSol >= -650) && contSol == 0) {
+			std::vector<std::string> skyboxFaces;
+			skyboxFaces.push_back("Textures/Skybox/escenario_dia_rt.tga");
+			skyboxFaces.push_back("Textures/Skybox/escenario_dia_lf.tga");
+			skyboxFaces.push_back("Textures/Skybox/escenario_dia_dn.tga");
+			skyboxFaces.push_back("Textures/Skybox/escenario_dia_up.tga");
+			skyboxFaces.push_back("Textures/Skybox/escenario_dia_bk.tga");
+			skyboxFaces.push_back("Textures/Skybox/escenario_dia_ft.tga");
+
+
+			skybox = Skybox(skyboxFaces);
+		}
+		///printf("%f\n", movSol);
+		//luz direccional, sólo 1 y siempre debe de existir
+		mainLight = DirectionalLight(green, red, 1.0f,
+			(green / 2) + 0.2f, (green / 2) + 0.2f,
+			movSol, -500.0f, 0.0f);
+
+
+		//Movimiento animación compleja
 		if (movHeliyoffset > 360.0f)
 			movHeliyoffset = 0.0f;
 
 		movHeliy += movHeliyoffset;
-		//Fin movimiento animacion compleja coche
+		//Fin movimiento animacion compleja
 
-		//Movimiento animación compleja coche
+		//Movimiento animación compleja Avión
 		if (movAvionoffset > 360.0f)
 			movAvionoffset = 0.0f;
 
 		movAvion += movAvionoffset;
-		//Fin movimiento animacion compleja coche
-
+		//Fin movimiento animacion compleja Avión
 
 		//Movimiento animacion simple
 		if (deltaTime <= 1.0f)
@@ -731,6 +1004,11 @@ int main()
 		}
 
 		//Fin movimiento animacion simple
+
+		cameraAvatar = Camera(glm::vec3(mainWindow.getPosCamaraX(), 18.0f, mainWindow.getPosCamaraZ()),
+			glm::vec3(0.0f, 1.0f, 0.0f),
+			-mainWindow.getAng() + 90.0f,
+			0.0f, 0.3f, 0.5f);
 
 		//Recibir eventos del usuario
 		glfwPollEvents();
@@ -767,16 +1045,31 @@ int main()
 		glm::vec3 lowerLight = camera.getCameraPosition();
 		lowerLight.y -= 0.3f;
 
-		//spotLights[0].SetFlash(lowerLight, camera.getCameraDirection());
-
 		//informaci�n al shader de fuentes de iluminaci�n
 		shaderList[0].SetDirectionalLight(&mainLight);
 		shaderList[0].SetPointLights(pointLights, pointLightCount);
 		shaderList[0].SetSpotLights(spotLights, spotLightCount);
 
-		glm::mat4 model(1.0);
-		glm::mat4 modelaux(1.0);
-		glm::vec3 color = glm::vec3(1.0f, 1.0f, 1.0f);
+
+		/*DIBUJAR TOROIDE CRISTOPHER*/
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(-155.0f, 7.0f, -170.0f));
+		model = glm::rotate(model, 90 * toRadians, glm::vec3(1.0f, 0.0f, 0.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		color = glm::vec3(1.0f, 0.0f, 1.0f);
+		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
+		ta.render(); //dibuja TOROIDE
+
+		/*DIBUJAR TOROIDE KARLA*/
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(-150.0f, 9.0f, -170.0f));
+		model = glm::rotate(model, 45 * toRadians, glm::vec3(1.0f, 0.0f, 0.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		color = glm::vec3(1.0f, 1.0f, 1.0f);
+		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
+		tb.render(); //dibuja TOROIDE 02
+
+		/*DIBUJO DEL PISO*/
 		model = glm::mat4(1.0);
 		model = glm::translate(model, glm::vec3(0.0f, -1.0f, 0.0f));
 		model = glm::scale(model, glm::vec3(26.0f, 1.0f, 30.0f));
@@ -787,6 +1080,7 @@ int main()
 		Material_opaco.UseMaterial(uniformSpecularIntensity, uniformShininess);
 		meshList[2]->RenderMesh();
 
+
 		//--------------------------------------------------------------------------------------*//
 		//
 		//
@@ -794,14 +1088,14 @@ int main()
 		//
 		//--------------------------------------------------------------------------------------*//
 
-										/*MODELOS DANIELA*/
+									/*MODELOS LAB (DANIELA)*/
+
 		//--------------------------------------------------------------------------------------*//
 		//Nadder Cuerpo
 		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(-150.0f, 40.0f, 0.0f));
-		//model = glm::translate(model, glm::vec3(-150.0f, 60 * abs(sin(glm::radians(movHeliy * 0.1f))), 0.0f));
+		//model = glm::translate(model, glm::vec3(-150.0f, 40.0f, 0.0f));
+		model = glm::translate(model, glm::vec3(-150.0f, 40.0f + (2.0f * abs(sin(glm::radians(movHeliy * 0.1f)))), 0.0f));
 		model = glm::rotate(model, 90 * toRadians, glm::vec3(0.0f, 1.0f, 0.0f));
-
 		model = glm::scale(model, glm::vec3(1.5f, 1.5f, 1.5f));
 		modelaux = model;
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
@@ -812,18 +1106,17 @@ int main()
 
 		//Nadder alas
 		modelaux = model;
-
 		model = glm::translate(model, glm::vec3(1.3f, 0.0f, -0.5f));
 		model = glm::rotate(model, -45 * toRadians, glm::vec3(abs(sin(glm::radians(movHeliy * 0.1f))), 1.0f, 0.0f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		color = glm::vec3(1.0f, 1.0f, 1.0f);
 		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
 		Nadder_AlaD.RenderModel();
+
 		model = modelaux;
 		modelaux = model;
 		model = glm::translate(model, glm::vec3(-1.3f, 0.0f, -0.5f));
 		model = glm::rotate(model, 45 * toRadians, glm::vec3(abs(sin(glm::radians(movHeliy * 0.1f))), 1.0f, 0.0f));
-
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		color = glm::vec3(1.0f, 1.0f, 1.0f);
 		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
@@ -853,8 +1146,6 @@ int main()
 		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
 		Nadder_cabeza.RenderModel();
 		model = modelaux;
-
-
 		model = glm::translate(model, glm::vec3(0.0f, -1.5f, -4.0f));
 		model = glm::rotate(model, glm::radians(mainWindow.getangulollantas()), glm::vec3(1.0f, 0.0f, 0.0f));
 
@@ -865,7 +1156,6 @@ int main()
 		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
 		Nadder_cola1.RenderModel();
 		model = modelaux;
-
 		model = glm::translate(model, glm::vec3(0.0f, 1.75f, -7.0f));
 		model = glm::rotate(model, glm::radians(mainWindow.getangulollantas()), glm::vec3(1.0f, 0.0f, 0.0f));
 
@@ -875,7 +1165,6 @@ int main()
 		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
 		Nadder_cola2.RenderModel();
 		model = modelaux;
-
 		model = glm::translate(model, glm::vec3(0.0f, 2.0f, -5.0f));
 
 		modelaux = model;
@@ -889,9 +1178,8 @@ int main()
 		model = glm::mat4(1.0);
 		model = glm::translate(model, glm::vec3(-120.0f, 20.0f, 0.0f));
 		//model = glm::translate(model, glm::vec3(150.0f + movCoche, 0.5f, 70.0f));
-
 		model = glm::scale(model, glm::vec3(1.5f, 1.5f, 1.5f));
-		model = glm::translate(model, glm::vec3(0.0f, 0.0f, mainWindow.getmueve()));
+		model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
 		modelaux = model;
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		color = glm::vec3(1.0f, 1.0f, 1.0f);
@@ -907,6 +1195,7 @@ int main()
 		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
 		Skrill_AlaD.RenderModel();
 		model = modelaux;
+
 		// Skrill ala I
 		modelaux = model;
 		model = glm::translate(model, glm::vec3(-1.0f, 0.0f, 0.7f));
@@ -915,6 +1204,7 @@ int main()
 		glUniform3fv(uniformColor, 1, glm::value_ptr(color));
 		Skrill_AlaI.RenderModel();
 		model = modelaux;
+
 		// Skrill cola
 		modelaux = model;
 		model = glm::translate(model, glm::vec3(0.0f, -3.0f, -0.8f));
@@ -1103,8 +1393,6 @@ int main()
 		model = glm::translate(model, glm::vec3(140.0f, -1.0f, -130.0f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		Arbusto_M.RenderModel();
-		
-
 
 		//Puerta Principal
 		model = glm::mat4(1.0);
@@ -1162,7 +1450,7 @@ int main()
 		Palmera.RenderModel();
 
 		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(-80.0f, 50.0f , 100.0f));
+		model = glm::translate(model, glm::vec3(-80.0f, 50.0f, 100.0f));
 		model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		Fruta.RenderModel();
@@ -1171,8 +1459,8 @@ int main()
 		model = glm::translate(model, glm::vec3(80.0f, 50.0f, 100.0f));
 		model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		Fruta.RenderModel(); 
-		
+		Fruta.RenderModel();
+
 		//Cercas
 		// 
 		//Cercas del enfrente
@@ -1426,23 +1714,38 @@ int main()
 		Material_brillante.UseMaterial(uniformSpecularIntensity, uniformShininess);
 		Ice.RenderModel();
 
-		/*PERSONAJE KUROMI*/ 
-			model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(mainWindow.getPosPsyduckX(), 5.0f, mainWindow.getPosPsyduckZ()));
+		//CARTEL
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(-50.0f, -1.0f, -60.0f));
+		model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f));
+		model = glm::rotate(model, 90 * toRadians, glm::vec3(0.0f, 1.0f, 0.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		Material_opaco.UseMaterial(uniformSpecularIntensity, uniformShininess);
+		Cartel2_M.RenderModel();
+
+		/*PERSONAJE KUROMI*/
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(mainWindow.getPosX(), 4.0f, mainWindow.getPosZ()));
 		model = glm::scale(model, glm::vec3(0.35f, 0.35f, 0.35f));
-		model = glm::rotate(model, glm::radians(mainWindow.getAngPsyduck()), glm::vec3(0.0f, 1.0f, 0.0f));
+		model = glm::rotate(model, glm::radians(mainWindow.getAng()), glm::vec3(0.0f, 1.0f, 0.0f));
 		modelaux = model;
 
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		Material_kuromi.UseMaterial(uniformSpecularIntensity, uniformShininess);
 		Cabeza.RenderModel();
 
+		/*
+		if (mainWindow.getPasos() == true){
+			playPasos();
+		}*/
+		
 		//Pata Izq.
 		model = modelaux;
 		model = glm::translate(model, glm::vec3(-5.0f, 4.0f, 0.0));
 		model = glm::rotate(model, glm::radians(mainWindow.getAngPieIzq()), glm::vec3(-1.0f, 0.0f, 0.0f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		PataIzq.RenderModel();
-		model = modelaux;
+		model = modelaux;	
 
 		//Pata Der.
 		model = modelaux;
@@ -1470,8 +1773,8 @@ int main()
 
 		//Varita
 		model = modelaux;
-		model = glm::translate(model, glm::vec3(15.0, 8.0f, 0.0f)); //TECLA U
-		model = glm::rotate(model, glm::radians(mainWindow.getmueve()), glm::vec3(-1.0f, 0.0f, 0.0f)); 
+		model = glm::translate(model, glm::vec3(15.0, 8.0f, 0.0f)); //TECLA Z
+		model = glm::rotate(model, glm::radians(mainWindow.getmueve()), glm::vec3(-1.0f, 0.0f, 0.0f));
 		//model = glm::rotate(model, glm::radians(mainWindow.getprenderluz()), glm::vec3(-1.0f, 0.0f, 0.0f));
 
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
@@ -1480,29 +1783,24 @@ int main()
 
 		if (mainWindow.getprender_luz2()) {
 			shaderList[0].SetPointLights(pointLights2, pointLightCount2);
+
 		}
 		else {
 			shaderList[0].SetPointLights(pointLights2, pointLightCount2 - 1);
 		}
 
-		/*Luces del faro del coche
-		if (mainWindow.getarregloluz() == 0)
+		if(mainWindow.getSonido())
 		{
-			shaderList[0].SetSpotLights(spotLights, spotLightCount);
-			spotLights[2].SetPos(glm::vec3(-2.0f + mainWindow.getmueve(), 2.0f, 0.0f));
+			playSonido();
 		}
-		else
-		{
-			shaderList[0].SetSpotLights(spotLights2, spotLightCount2);
-			spotLights2[2].SetPos(glm::vec3(-2.0f + mainWindow.getmueve(), 2.0f, 0.0f));
-		}*/
+	
+
 
 		//--------------------------------------------------------------------------------------*//
 
 
-											/*MODELOS EDUARDO*/
+										/*MODELOS LAB (EDUARDO)*/
 		//--------------------------------------------------------------------------------------*//
-
 		/*ANIMALES POKEMON*/
 		model = glm::mat4(1.0);
 		model = glm::translate(model, glm::vec3(150.0f + +sin(glm::radians(movHeliy * 0.1f)), -1.0f, -200.0f));
@@ -1597,21 +1895,22 @@ int main()
 
 		/*PERSONAJE PSYDUCK */
 		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(0.0f + sin(glm::radians(movHeliy * 0.1f)), 4.0f, 0.0f));
+		model = glm::translate(model, glm::vec3(0.0f + sin(4.0f * glm::radians(movHeliy * 0.5f)), 8.0f, 0.0f));
 		model = glm::rotate(model, 180 * toRadians, glm::vec3(0.0f, 1.0f, 0.0f));
-		//model = glm::translate(model, glm::vec3(130.0f + sin(glm::radians(movHeliy * 0.1f)), -1.0f, -80.0f));
-		model = glm::scale(model, glm::vec3(4.0f, 4.0f, 4.0f));
+		model = glm::scale(model, glm::vec3(8.0f, 8.0f, 8.0f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		psyduckBase.RenderModel();
 
 		modelaux = model;
 		//model = glm::scale(model, glm::vec3(3.0f, 3.0f, 3.0f));
+		model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		psyduckPieI.RenderModel();
 		model = modelaux;
 
 		modelaux = model;
 		//model = glm::scale(model, glm::vec3(3.0f, 3.0f, 3.0f));
+		model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		psyduckPieD.RenderModel();
 		model = modelaux; 
@@ -1793,7 +2092,7 @@ int main()
 		kartllanta.RenderModel();
 
 		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3( movCoche, 30 * sin(glm::radians(movHeliy * 0.1f)), 0.0f));
+		model = glm::translate(model, glm::vec3(movCoche, 30 * sin(glm::radians(movHeliy * 0.1f)), 0.0f));
 		model = glm::scale(model, glm::vec3(3.0f, 3.0f, 3.0f));
 		model = glm::rotate(model, -90 * toRadians, glm::vec3(0.0f, 1.0f, 0.0f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
@@ -1919,6 +2218,15 @@ int main()
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+		//Caseta de vigilancia
+		model = glm::mat4(1.0);
+		model = glm::translate(model, glm::vec3(-80.0f, -1.0f, -50.0f));
+		model = glm::scale(model, glm::vec3(0.4f, 0.4f, 0.4f));
+		model = glm::rotate(model, -180 * toRadians, glm::vec3(0.0f, 1.0f, 0.0f));
+		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
+		Material_opaco.UseMaterial(uniformSpecularIntensity, uniformShininess);
+		Vigilancia.RenderModel();
+
 		//JAULA A
 		model = glm::mat4(1.0);
 		model = glm::translate(model, glm::vec3(25.0f, -0.5f, 95.0f));
@@ -1998,21 +2306,8 @@ int main()
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		Bandera_P.RenderModel();
 
-		//Caseta de vigilancia
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(-80.0f, -1.0f, -50.0f));
-		model = glm::scale(model, glm::vec3(0.4f, 0.4f, 0.4f));
-		model = glm::rotate(model, -180 * toRadians, glm::vec3(0.0f, 1.0f, 0.0f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		Material_opaco.UseMaterial(uniformSpecularIntensity, uniformShininess);
-		Vigilancia.RenderModel();
 
-		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(-50.0f, -1.0f, -25.0f));
-		model = glm::rotate(model, 90 * toRadians, glm::vec3(0.0f, 1.0f, 0.0f));
-		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
-		Material_opaco.UseMaterial(uniformSpecularIntensity, uniformShininess);
-		Cartel2_M.RenderModel();
+
 
 		glDisable(GL_BLEND);
 
@@ -2020,6 +2315,6 @@ int main()
 		glUseProgram(0);
 		mainWindow.swapBuffers();
 	}
-	return 0;
+	return EXIT_SUCCESS;
 }
 

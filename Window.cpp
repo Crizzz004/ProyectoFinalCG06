@@ -126,17 +126,6 @@ void Window::ManejaTeclado(GLFWwindow* window, int key, int code, int action, in
 		theWindow->angulollantas -= 10.0;
 	}
 
-	// abrir ocerrar cofre
-	if (key == GLFW_KEY_P)
-	{
-		if (theWindow->angulocofre < -75.0)
-		{
-		}
-		else
-		{
-			theWindow->angulocofre -= 10.0;
-		}
-	}
 	if (key == GLFW_KEY_M)
 	{
 		if (theWindow->angulocofre > -0.17)
@@ -154,11 +143,7 @@ void Window::ManejaTeclado(GLFWwindow* window, int key, int code, int action, in
 		theWindow->mueve += 1.0;
 		theWindow->arregloluz = 0;
 	}
-	if (key == GLFW_KEY_Z)
-	{
-		theWindow->mueve -= 1.0;
-		//theWindow->arregloluz = 1;
-	}
+
 	// Luz de farol
 	if (key == GLFW_KEY_I && action == GLFW_PRESS)
 	{
@@ -168,11 +153,49 @@ void Window::ManejaTeclado(GLFWwindow* window, int key, int code, int action, in
 	//VARITA
 	if (key == GLFW_KEY_Z && action == GLFW_PRESS)
 	{
-		//theWindow->mueve -= 1.0;
+		//theWindow->mueve -= 1.0;}
+		theWindow->mueve -= 20.0;
 		theWindow->prender_luz2 = !theWindow->prender_luz2;
+		//theWindow->Sonido = !theWindow->Sonido;
+	}
+	else if(key == GLFW_KEY_Z){
+		theWindow->mueve += 20.0;
+		theWindow->prender_luz2 = theWindow->prender_luz2;
+
+	}
+	
+	if (key == GLFW_KEY_Z && action == GLFW_PRESS)
+	{
+		theWindow->Sonido = true;
+
+	}
+	else if (key == GLFW_KEY_Z && action == GLFW_RELEASE) {
+
+		theWindow->Sonido = false;
+
 	}
 
+	if (key == GLFW_KEY_UP && action == GLFW_PRESS)
+	{
+		theWindow->Pasos = true;
 
+	}
+	else if (key == GLFW_KEY_UP && action == GLFW_RELEASE) {
+
+		theWindow->Pasos = false;
+
+	}
+
+	if (key == GLFW_KEY_DOWN && action == GLFW_PRESS)
+	{
+		theWindow->Pasos = true;
+
+	}
+	else if (key == GLFW_KEY_DOWN && action == GLFW_RELEASE) {
+
+		theWindow->Pasos = false;
+
+	}
 
 	if (key == GLFW_KEY_D && action == GLFW_PRESS)
 	{
@@ -202,10 +225,10 @@ void Window::ManejaTeclado(GLFWwindow* window, int key, int code, int action, in
 
 	if (key == GLFW_KEY_N && action == GLFW_PRESS)
 	{
-		if (theWindow->angPsyduck < 3)
-			theWindow->angPsyduck += 1.0f;
+		if (theWindow->ang < 3)
+			theWindow->ang += 1.0f;
 		else
-			theWindow->angPsyduck = 0.0f;
+			theWindow->ang = 0.0f;
 		//printf("se presiono la tecla: %s\n",key_name);
 	}
 
@@ -222,17 +245,17 @@ void Window::ManejaTeclado(GLFWwindow* window, int key, int code, int action, in
 
 	if (key == GLFW_KEY_UP)
 	{
-		if (theWindow->angPsyduck == 0.0f)
-			theWindow->posPsyduckZ += 1.0f;
+		if (theWindow->ang == 0.0f)
+			theWindow->posZ += 1.0f;
 
-		else if (theWindow->angPsyduck == 90.0f)
-			theWindow->posPsyduckX += 1.0f;
+		else if (theWindow->ang == 90.0f)
+			theWindow->posX += 1.0f;
 
-		else if (theWindow->angPsyduck == 180.0f)
-			theWindow->posPsyduckZ -= 1.0f;
+		else if (theWindow->ang == 180.0f)
+			theWindow->posZ -= 1.0f;
 
 		else
-			theWindow->posPsyduckX -= 1.0f;
+			theWindow->posX -= 1.0f;
 
 
 		if (theWindow->angPieDer == 30.0f)
@@ -253,10 +276,10 @@ void Window::ManejaTeclado(GLFWwindow* window, int key, int code, int action, in
 	{
 		theWindow->angPieDer = 0.0f;
 		theWindow->angPieIzq = 0.0f;
-		if (theWindow->angPsyduck < 270.0f)
-			theWindow->angPsyduck += 90.0f;
+		if (theWindow->ang < 270.0f)
+			theWindow->ang += 90.0f;
 		else
-			theWindow->angPsyduck = 0.0f;
+			theWindow->ang = 0.0f;
 	}
 
 
@@ -265,27 +288,27 @@ void Window::ManejaTeclado(GLFWwindow* window, int key, int code, int action, in
 	{
 		theWindow->angPieDer = 0.0f;
 		theWindow->angPieIzq = 0.0f;
-		if (theWindow->angPsyduck > 0.0f)
-			theWindow->angPsyduck -= 90.0f;
+		if (theWindow->ang > 0.0f)
+			theWindow->ang -= 90.0f;
 		else
-			theWindow->angPsyduck = 270.0f;
+			theWindow->ang = 270.0f;
 	}
 
 
 
 	else if (key == GLFW_KEY_DOWN)
 	{
-		if (theWindow->angPsyduck == 0.0f)
-			theWindow->posPsyduckZ -= 1.0f;
+		if (theWindow->ang == 0.0f)
+			theWindow->posZ -= 1.0f;
 
-		else if (theWindow->angPsyduck == 90.0f)
-			theWindow->posPsyduckX -= 1.0f;
+		else if (theWindow->ang == 90.0f)
+			theWindow->posX -= 1.0f;
 
-		else if (theWindow->angPsyduck == 180.0f)
-			theWindow->posPsyduckZ += 1.0f;
+		else if (theWindow->ang == 180.0f)
+			theWindow->posZ += 1.0f;
 
 		else
-			theWindow->posPsyduckX += 1.0f;
+			theWindow->posX += 1.0f;
 
 
 		if (theWindow->angPieDer == -30.0f)
@@ -314,6 +337,7 @@ void Window::ManejaTeclado(GLFWwindow* window, int key, int code, int action, in
 		if (action == GLFW_PRESS)
 		{
 			theWindow->keys[key] = true;
+
 			//printf("se presiono la tecla %d'\n", key);
 		}
 		else if (action == GLFW_RELEASE)
