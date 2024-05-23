@@ -182,6 +182,9 @@ float movCoche;
 float movOffset;
 float rotllanta;
 float rotllantaOffset;
+float movFrutax;
+float movFrutay;
+float rotacionFruta;
 bool avanza;
 
 //--------------------------------------------------------------------------------------*//
@@ -667,6 +670,9 @@ int main()
 	rotllanta = 0.0f;
 	rotllantaOffset = 5.0f;
 	avanza = true;
+	movFrutax = 0.0f;
+	movFrutay = 50.0f;
+	rotacionFruta = 0.0f;
 
 	/////LUZ SOL
 	dia = 1;
@@ -700,6 +706,27 @@ int main()
 
 		movAvion += movAvionoffset;
 		//Fin movimiento animacion compleja coche
+
+		//Movimiento animación fruta
+		//Y
+		if (movFrutay >= 3.0f) //Si la fruta no esta en el suelo
+			movFrutay -= 0.05f; //La fruta comienza a caer
+
+		//X
+		if (movFrutay < 10.0f) //Si la fruta esta en el suelo
+			if (movFrutax > 30.0f)
+				movFrutax -= 0.05f;
+			else
+				movFrutax += 0.05f;
+
+		//Rotación
+		if (movFrutay < 3.0f)
+			if (movFrutax > 30.0f)
+				rotacionFruta = 0.0f;
+			else
+				rotacionFruta += 1.0f;
+
+		//Fin movimiento animación fruta
 
 
 		//Movimiento animacion simple
@@ -1160,15 +1187,20 @@ int main()
 		model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		Palmera.RenderModel();
+		
+		/*printf("Y: %f\n", movFrutay);
+		printf("X: %f\n", movFrutax);*/
 
 		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(-80.0f, 50.0f , 100.0f));
+		model = glm::translate(model, glm::vec3(-85.0f - movFrutax, movFrutay, 100.0f));
+		model = glm::rotate(model, rotacionFruta * toRadians, glm::vec3(1.0f, 1.0f, 1.0f ));
 		model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		Fruta.RenderModel();
 
 		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3(80.0f, 50.0f, 100.0f));
+		model = glm::translate(model, glm::vec3(85.0f + movFrutax, movFrutay, 100.0f));
+		model = glm::rotate(model, rotacionFruta * toRadians, glm::vec3(1.0f, 1.0f, 1.0f));
 		model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
 		Fruta.RenderModel(); 
@@ -1793,7 +1825,7 @@ int main()
 		kartllanta.RenderModel();
 
 		model = glm::mat4(1.0);
-		model = glm::translate(model, glm::vec3( movCoche, 30 * sin(glm::radians(movHeliy * 0.1f)), 0.0f));
+		model = glm::translate(model, glm::vec3( movCoche, 40.0f + 10 * sin(glm::radians(movHeliy * 0.1f)), 0.0f));
 		model = glm::scale(model, glm::vec3(3.0f, 3.0f, 3.0f));
 		model = glm::rotate(model, -90 * toRadians, glm::vec3(0.0f, 1.0f, 0.0f));
 		glUniformMatrix4fv(uniformModel, 1, GL_FALSE, glm::value_ptr(model));
